@@ -57,7 +57,6 @@ function Quiz(){
 			this.loadMultiselect(q.r);
 		} else {
 			$('#response').empty();
-			console.log("question type not implemented:"+q.type);
 		}
 	}
 	
@@ -226,7 +225,7 @@ function Quiz(){
 		} else if(q.type == 'multiselect'){
 			return this.saveMultiselect(nav);
 		} else {
-			console.log("question type not implemented:"+q.type);
+			
 		}
 	}
 	
@@ -472,6 +471,10 @@ function Quiz(){
 		var percent = total*100/this.quiz.maxscore;
 		$('#content').append("<div id='quizresults'>"+ percent.toFixed(0) +"%</div>");
 		
+		var rank = $('<div>').attr({'id':'rank','class': 'rank'});
+		$('#content').append(rank);
+		rank.hide();
+		
 		var retake = $('<div>').attr({'class': 'resultopt clickable centre'}).append('Take this quiz again');
 		$('#content').append(retake);
 		var refid = this.quiz.refid;
@@ -485,6 +488,12 @@ function Quiz(){
 			document.location = "#home";
 		});
 		
+		var viewResults = $('<div>').attr({'class': 'resultopt clickable centre'}).append('View all recent results');
+		$('#content').append(viewResults);
+		viewResults.click(function(){
+			document.location = "#results";
+		});
+		
 		//save for submission to server
 		var content = Object();
 		content.quizid = this.quiz.refid;
@@ -493,6 +502,7 @@ function Quiz(){
 		content.userscore = total;
 		content.quizdate = Date.now();
 		content.responses = this.responses;
+		content.title = this.quiz.title;
 	
 		$.ajax({
 		   data:{'method':'submit','username':store.get('username'),'password':store.get('password'),'content':JSON.stringify(content)}, 
@@ -500,6 +510,15 @@ function Quiz(){
 			   //check for any error messages
 			   if(!data || data.error){
 				   store.addArrayItem('unsentresults',content);
+			   } else {
+				   content.rank = data.rank;
+				   store.addArrayItem('results', content);
+				   // show ranking 
+				   if($('#rank') && data.rank){
+					   $('#rank').empty();
+					   $('#rank').append("Your ranking: " + data.rank);
+					   $('#rank').show();
+				   }
 			   }
 		   }, 
 		   error:function(data){

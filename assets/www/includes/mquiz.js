@@ -1,5 +1,5 @@
 
-var DATA_CACHE_EXPIRY = 10; // no of mins before the data should be updated from server;
+var DATA_CACHE_EXPIRY = 60; // no of mins before the data should be updated from server;
 
 $.ajaxSetup({
 	url: "http://mquiz.org/api/?format=json",
@@ -8,6 +8,52 @@ $.ajaxSetup({
 	dataType:'json',
 	timeout: 20000
 });
+
+
+var store = new Store();
+store.init();
+
+function Store(){
+	
+	this.init = function(){
+		if (!localStorage) {
+			localStorage.setItem('username', null);
+			localStorage.setItem('password', null);
+			localStorage.setItem('lang', 'EN');
+			localStorage.setItem('quizzes', null);
+			localStorage.setItem('results', null);
+		}
+	}
+	
+	this.get = function(key){
+		var value = localStorage.getItem(key);
+	    return value && JSON.parse(value);
+	}
+	
+	this.set = function(key,value){
+		localStorage.setItem(key,JSON.stringify(value));
+	}
+	
+	this.clear = function(){
+		localStorage.clear();
+	}
+	
+	this.clearKey = function(key){
+		this.set(key,null);
+	}
+	
+	this.addArrayItem = function(key,value){
+		//get current array
+		var c = this.get(key);
+		//var count = 0;
+		if(!c){
+			c = [];
+		} 
+		c.unshift(value);
+		this.set(key,c);
+	}
+	
+}
 
 function showPage(hash){
 	if(!loggedIn() && hash != '#register'){
@@ -29,7 +75,11 @@ function showPage(hash){
 		} else {
 			loadQuiz(hash.substring(1),false);
 		}
-	} else {
+	} else if (hash == '#quizzes'){
+		showLocalQuizzes();
+	}else if (hash == '#results'){
+		showResults();
+	}  else {
 		inQuiz = false;
 		showHome();
 	}
@@ -54,6 +104,9 @@ function confirmExitQuiz(page){
 
 function showHome(){
 	$('#content').empty();
+	
+	showMenu();
+	
 	var searchform = $('<div>').attr({'id':'search','class':'formblock'});
 	searchform.append($('<div>').attr({'id':'searchtitle','class':'formlabel'}).text("Search quizzes:"));
 	var ff = $('<div>').attr({'class':'formfield'});
@@ -86,6 +139,59 @@ function showHome(){
 		});
 }
 
+function showMenu(){
+	var menu = $('<div>').attr({'id':'menu'});
+	menu.append($('<a>').attr({'href':'#select'}).text('Search'));
+	menu.append(' | ');
+	menu.append($('<a>').attr({'href':'#quizzes'}).text('Quizzes'));
+	menu.append(' | ');
+	menu.append($('<a>').attr({'href':'#results'}).text('Results'));
+	$('#content').append(menu);
+}
+
+function showLocalQuizzes(){
+	$('#content').empty();
+	showMenu();
+	var localQuizzes = $('<div>').attr({'id':'localq'}); 
+	localQuizzes.append("Quizzes stored locally:");
+	$('#content').append(localQuizzes);
+	var qs = store.get('quizzes');
+	for (var q in qs){
+		addQuizListItem(qs[q],'#localq');
+	}
+}
+
+function showResults(){
+	$('#content').empty();
+	
+	showMenu();
+	var results = $('<div>').attr({'id':'results'}); 
+	$('#content').append(results);
+	var qs = store.get('results');
+	if(qs.length>0){
+		var result = $('<div>').attr({'class':'th'});
+		result.append($('<div>').attr({'class':'thrt'}).text("Quiz"));
+		result.append($('<div>').attr({'class':'thrd'}).text("Date"));
+		result.append($('<div>').attr({'class':'thrs'}).text("Score"));
+		result.append($('<div>').attr({'class':'thrr'}).text("Rank"));
+		result.append("<div style='clear:both'></div>");
+		results.append(result);
+	} else {
+		results.append("You haven't taken any quizzes yet");
+	}
+	for (var q in qs){
+		var result = $('<div>').attr({'class':'result'});
+		result.append($('<div>').attr({'class':'rest clickable','onclick':'document.location="#'+qs[q].quizid +'"','title':'try this quiz again'}).text(qs[q].title));
+		var d = new Date(qs[q].quizdate);
+		result.append($('<div>').attr({'class':'resd'}).text(dateFormat(d,'HH:MM d-mmm-yy')));
+		result.append($('<div>').attr({'class':'ress'}).text((qs[q].userscore*100/qs[q].maxscore).toFixed(0)+"%"));
+		result.append($('<div>').attr({'class':'resr'}).text(qs[q].rank));
+		result.append("<div style='clear:both'></div>");
+		results.append(result);
+	}
+	
+}
+
 function doSearch(){
 	var t = $('#searchterms').val().trim();
 	if(t.length > 1){
@@ -112,16 +218,16 @@ function doSearch(){
 	}
 }
 
-function loadQuiz(id,force){
-	document.location = "#"+id;
+function loadQuiz(ref,force){
+	document.location = "#"+ref;
 	$('#content').empty();
 	showLoading('quiz');
 	// find if this quiz is already in the cache
-	var quiz = store.get(id);
+	var quiz = quizInCache(ref);
 	if(!quiz || force){
 		// load from server
 		$.ajax({
-			   data:{'method':'getquiz','username':store.get('username'),'password':store.get('password'),'ref':id}, 
+			   data:{'method':'getquiz','username':store.get('username'),'password':store.get('password'),'ref':ref}, 
 			   success:function(data){
 				   if(data.error){
 					   alert(data.error);
@@ -132,23 +238,24 @@ function loadQuiz(id,force){
 				   //check for any error messages
 				   if(data && !data.error){
 					   //save to local cache and then load
-					   store.set(id, data);
-					   showQuiz(id);
+					   store.addArrayItem('quizzes', data);
+					   showQuiz(ref);
 				   }
 			   }, 
 			   error:function(data){
 				   alert("No connection available. You need to be online to load this quiz.");
+				   document.location = "#select";
 			   }
 			});
 	} else {
-		showQuiz(id);
+		showQuiz(ref);
 	}
 }
 
-function showQuiz(id){
+function showQuiz(ref){
 	$('#content').empty();
 	Q = new Quiz();
-	Q.init(store.get(id));
+	Q.init(quizInCache(ref));
 	
 	var qhead = $('<div>').attr({'id':'quizheader'});
 	$('#content').append(qhead);
@@ -167,8 +274,7 @@ function showQuiz(id){
 	var clear = $('<div>').attr({'style':'clear:both'});
 	$('#content').append(quiznav);
 	Q.loadQuestion();
-	
-	
+
 }
 
 function showLogin(hash){
@@ -176,12 +282,12 @@ function showLogin(hash){
 	$('#content').append("<h2>Login (or <a href='#register'>Register</a>)</h2>");
 	var form =  $('<div>');
 	form.append("<div class='formblock'>" +
-		"<div class='formlabel' name='lang' id='login_username'>"+getString('login_username')+"</div>" +
+		"<div class='formlabel' name='lang' id='login_username'>Email:</div>" +
 		"<div class='formfield'><input type='text' name='username' id='username'></input></div>" +
 		"</div>");
 	
 	form.append("<div class='formblock'>"+
-		"<div class='formlabel'name='lang' id='login_password'>"+getString('login_password')+"</div>" +
+		"<div class='formlabel'name='lang' id='login_password'>Password:</div>" +
 		"<div class='formfield'><input type='password' name='password' id='password'></input></div>" +
 		"</div>");
 	
@@ -371,7 +477,7 @@ function showUsername(){
 		$('#logininfo').text(store.get('displayname') + " ");
 	} 
 	if(store.get('username') != null){
-		$('#logininfo').append("<a onclick='logout()' name='lang' id='logout'>"+getString('logout')+"</a>");
+		$('#logininfo').append("<a onclick='logout()' name='lang' id='logout'>Logout</a>");
 	}
 }
 
@@ -390,26 +496,28 @@ function dataUpdate(){
 	var unsent = store.get('unsentresults');
 	
 	if(unsent){
-		$.ajax({
-			   data:{'method':'submit','username':store.get('username'),'password':store.get('password'),'content':JSON.stringify(unsent)}, 
-			   success:function(data){
-				   if(data && data.result){
-					   // all submitted ok so remove array
-					   store.clearKey('unsentresults');
-					   store.set('lastupdate',Date());
+		for(var u in unsent){
+			$.ajax({
+				   data:{'method':'submit','username':store.get('username'),'password':store.get('password'),'content':unsent[u]}, 
+				   success:function(data){
+					   
+					 //check for any error messages
+					   if(data && !data.error){
+						   unsent[u].rank = data.rank;
+						   store.addArrayItem('results',unsent[u]);
+						   store.set('lastupdate',Date());
+						   store.clearKey('unsentresults');
+					   }
+					   
+				   }, 
+				   error:function(data){
+					   // do nothing - will send on next update
 				   }
-			   }, 
-			   error:function(data){
-				   // do nothing - will send on next update
-			   }
-			});
+				});
+		}
 	}
 	
 	// update suggestions
-	loadSuggested();
-}
-
-function loadSuggested(){
 	$.ajax({
 		   data:{'method':'suggest','username':store.get('username'),'password':store.get('password')}, 
 		   success:function(data){
@@ -417,7 +525,6 @@ function loadSuggested(){
 				   store.clearKey('suggest');
 				   for(var q in data){
 					   store.addArrayItem('suggest',data[q]);
-					   cacheQuiz(data[q].ref);
 				   }
 				   store.set('lastupdate',Date());
 				   if($('#suggestresults')){
@@ -428,18 +535,21 @@ function loadSuggested(){
 					   }
 				   }
 			   }
-		   }, 
+		   },
+		   error:function(data){
+			   // do nothing - run on next update
+		   }
 		});
 }
 
-function cacheQuiz(id){
+function cacheQuiz(ref){
 	// check is already cached
-	if(!store.get(id)){
+	if(!quizInCache(ref)){
 		$.ajax({
-			   data:{'method':'getquiz','username':store.get('username'),'password':store.get('password'),'ref':id}, 
+			   data:{'method':'getquiz','username':store.get('username'),'password':store.get('password'),'ref':ref}, 
 			   success:function(data){
 				   if(data && !data.error){
-					   store.set(id, data);
+					   store.addArrayItem('quizzes', data);
 				   }
 			   }, 
 			});
@@ -456,6 +566,16 @@ function addQuizListItem(q,list){
 		desc.text(" - " + q.description);
 		ql.append(desc);
 	}
+}
+
+function quizInCache(ref){
+	var qs = store.get('quizzes');
+	for(var q in qs){
+		if (qs[q].ref == ref){
+			return qs[q];
+		}
+	}
+	return false;
 }
 
 function setUpdated(){
