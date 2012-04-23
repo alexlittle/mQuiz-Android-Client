@@ -262,17 +262,26 @@ function showQuiz(ref){
 	var qhead = $('<div>').attr({'id':'quizheader'});
 	$('#content').append(qhead);
 	
+	var qs = $('<div>').attr({'id':'qs'});
+	$('#content').append(qs);
+	
 	var question = $('<div>').attr({'id':'question'});
-	$('#content').append(question);
+	$('#qs').append(question);
 	
 	var response = $('<div>').attr({'id':'response'});
-	$('#content').append(response);
+	$('#qs').append(response);
+	
+	var fb = $('<div>').attr({'id':'feedback'});
+	$('#qs').append(fb);
+	fb.hide();
 	
 	var quiznav = $('<div>').attr({'id':'quiznav'});
-	var quiznavprev = $('<div>').attr({'class':'quiznavprev'}).append($('<input>').attr({'id':'quiznavprevbtn','type':'button','class':'button','value':'<< Prev','onclick':'Q.loadPrevQuestion()'}));
+	var quiznavprev = $('<div>').attr({'class':'quiznavprev'}).append($('<input>').attr({'id':'quiznavprevbtn','type':'button','class':'button','value':'<< Prev'}));
 	quiznav.append(quiznavprev);
-	var quiznavnext = $('<div>').attr({'class':'quiznavnext'}).append($('<input>').attr({'id':'quiznavnextbtn','type':'button','class':'button','value':'Next >>','onclick':'Q.loadNextQuestion()'}));
+	
+	var quiznavnext = $('<div>').attr({'class':'quiznavnext'}).append($('<input>').attr({'id':'quiznavnextbtn','type':'button','class':'button','value':'Next >>'}));
 	quiznav.append(quiznavnext);
+	
 	var clear = $('<div>').attr({'style':'clear:both'});
 	$('#content').append(quiznav);
 	Q.loadQuestion();
@@ -281,7 +290,7 @@ function showQuiz(ref){
 
 function showLogin(hash){
 	$('#content').empty();
-	$('#content').append("<h2>Login (or <a href='#register'>Register</a>)</h2>");
+	$('#content').append("<h2>Login (or <a onclick='showRegister()'>Register</a>)</h2>");
 	var form =  $('<div>');
 	form.append("<div class='formblock'>" +
 		"<div class='formlabel' name='lang' id='login_username'>Email:</div>" +
@@ -298,7 +307,6 @@ function showLogin(hash){
 }
 
 function showRegister(){
-	document.location = '#register';
 	$('#content').empty();
 	$('#content').append("<h2>Register</h2>");
 	var l = $('<div>').attr({'id':'loading'}).html("Registering...");
@@ -429,7 +437,8 @@ function register(){
 				   store.set('password',data.hash);
 				   store.set('lastlogin',Date());
 				   showUsername();
-				   showPage('#home');
+				   var hash = $(location).attr('hash');
+				   showPage(hash);
 			   } else if(data.error) {
 				   $('#loading').hide();
 				   $('#register').show();

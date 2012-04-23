@@ -9,10 +9,13 @@ function Quiz(){
 	this.responses = [];
 	this.matchingstate = [];
 	this.matchingopt = [];
+	this.feedback = "";
+	this.opts = {};
 	
-	this.init = function(q){
+	this.init = function(q,opts){
 		this.quiz = q;
 		inQuiz = true;
+		this.opts = opts;
 	}
 	
 	this.setHeader = function(){
@@ -21,10 +24,34 @@ function Quiz(){
 	
 	this.loadNextQuestion = function(){
 		if(this.saveResponse('next')){
-			this.currentQuestion++;
-			this.loadQuestion();
+			if(this.feedback != ""){
+				$('#question').hide();
+				$('#response').hide();
+				$('#feedback').empty();
+				$('#feedback').append("<h2>Feedback</h2><div id='fbtext'>"+this.feedback+"</div>");
+				$('#feedback').show('blind',{},500);
+				$('#quiznavnextbtn').unbind('click');
+				if(this.currentQuestion+1 == this.quiz.q.length){
+					$('#quiznavnextbtn').bind('click',function(){
+						Q.showResults();
+					});
+				} else {
+					$('#quiznavnextbtn').bind('click',function(){
+						Q.currentQuestion++;
+						Q.loadQuestion();
+					});
+				}
+			} else {
+				if(this.currentQuestion+1 == this.quiz.q.length){
+					Q.showResults();
+				} else {
+					this.currentQuestion++;
+					this.loadQuestion();
+				}
+			}
+
 		} else {
-			alert("You must answer this question before continuing.");
+			alert("Please answer this question before continuing.");
 		}
 	}
 	
@@ -32,14 +59,18 @@ function Quiz(){
 		this.saveResponse('prev')
 		this.currentQuestion--;
 		this.loadQuestion();
-
 	}
 	
 	this.loadQuestion = function(){
 		this.setHeader();
 		this.setNav();
+		this.feedback = "";
+
 		$('#question').html(this.quiz.q[this.currentQuestion].text);
 		this.loadResponses(this.quiz.q[this.currentQuestion]);
+		$('#feedback').hide();
+		$('#question').show('blind',{},500);
+		$('#response').show('blind',{},500);
 	}
 	
 	this.loadResponses = function(q){
@@ -55,6 +86,8 @@ function Quiz(){
 			this.loadEssay();
 		} else if (q.type == 'multiselect'){
 			this.loadMultiselect(q.r);
+		} else if (q.type == 'info'){
+			this.loadInfo();
 		} else {
 			$('#response').empty();
 		}
@@ -137,6 +170,10 @@ function Quiz(){
 				})(resp[i]);
 			}
 		});
+	}
+	
+	this.loadInfo = function(){
+		$('#response').empty();
 	}
 	
 	this.loadShortAnswer = function(){
@@ -224,6 +261,8 @@ function Quiz(){
 			return this.saveEssay(nav);
 		} else if(q.type == 'multiselect'){
 			return this.saveMultiselect(nav);
+		} else if(q.type == 'info'){
+			return this.saveInfo(nav);
 		} else {
 			
 		}
@@ -237,24 +276,20 @@ function Quiz(){
 			o.qid = q.refid;
 			o.score = 0;
 			o.qrtext = "";
-			var feedback = null;
 			// mark question and get text
 			for(var r in q.r){
 				if(q.r[r].refid == opt){
 					o.score = q.r[r].score;
 					o.qrtext = q.r[r].text;
+					// set feedback (if any)
 					if (q.r[r].props.feedback && q.r[r].props.feedback != ''){
-						feedback = q.r[r].props.feedback;
+						this.feedback = q.r[r].props.feedback;
 					}
 				}
 			}
-			o.score = Math.min(o.score,parseInt(q.props.maxscore));
+			o.score = Math.min(o.score,parseFloat(q.props.maxscore));
 			this.responses[this.currentQuestion] = o;
-			
-			// show feedback (if any)
-			if(feedback){
-				alert("Feedback: "+feedback);
-			}
+
 			return true;
 		} else {
 			if(nav == 'next'){
@@ -273,23 +308,19 @@ function Quiz(){
 			o.qid = q.refid;
 			o.score = 0;
 			o.qrtext = ans;
-			var feedback = null;
 			// mark question and get text
 			for(var r in q.r){
 				if(q.r[r].text == ans){
 					o.score = q.r[r].score;
+					// set feedback (if any)
 					if (q.r[r].props.feedback && q.r[r].props.feedback != ''){
-						feedback = q.r[r].props.feedback;
+						this.feedback = q.r[r].props.feedback;
 					}
 				}
 			}
-			o.score = Math.min(o.score,parseInt(q.props.maxscore));
+			o.score = Math.min(o.score,parseFloat(q.props.maxscore));
 			this.responses[this.currentQuestion] = o;
-			
-			// show feedback (if any)
-			if(feedback){
-				alert("Feedback: "+feedback);
-			}
+
 			return true;
 		} else {
 			if(nav == 'next'){
@@ -298,6 +329,10 @@ function Quiz(){
 				return true;
 			}	
 		}
+	}
+	
+	this.saveInfo = function(nav){
+		return true;
 	}
 	
 	this.saveMatching = function(nav){
@@ -317,18 +352,17 @@ function Quiz(){
 		o.qid = q.refid;
 		o.score = 0;
 		o.qrtext = '';
-		var feedback = null;
 		for(var s in this.matchingstate){
 			var resp = this.matchingstate[s] + " -&gt; " +  $('#matchingopt'+s+' :selected').text();
 			for(var r in q.r){
 				if(q.r[r].text == resp){
-					o.score += parseInt(q.r[r].score);
+					o.score += parseFloat(q.r[r].score);
 				}
 			}
 			o.qrtext += resp + "|";
 			
 		}
-		o.score = Math.min(o.score,parseInt(q.props.maxscore));
+		o.score = Math.min(o.score,parseFloat(q.props.maxscore));
 		this.responses[this.currentQuestion] = o;
 		return true;
 	}
@@ -342,12 +376,11 @@ function Quiz(){
 			o.qid = q.refid;
 			o.score = 0;
 			o.qrtext = ans;
-			var feedback = null;
 			var bestans = -1;
 			// mark question and get text
 			for(var r in q.r){
 				if(parseFloat(q.r[r].text) - parseFloat(q.r[r].props.tolerance) <= ans && ans <= parseFloat(q.r[r].text) + parseFloat(q.r[r].props.tolerance) ){
-					if(parseInt(q.r[r].score) > parseInt(o.score)){
+					if(parseFloat(q.r[r].score) > parseFloat(o.score)){
 						o.score = q.r[r].score;
 						bestans = r;
 					}
@@ -355,18 +388,15 @@ function Quiz(){
 			}
 			if(bestans != -1){
 				o.score = q.r[bestans].score;
+				// set feedback (if any)
 				if (q.r[bestans].props.feedback && q.r[bestans].props.feedback != ''){
-					feedback = q.r[bestans].props.feedback;
+					this.feedback = q.r[bestans].props.feedback;
 				}
 			}
 			
-			o.score = Math.min(o.score,parseInt(q.props.maxscore));
+			o.score = Math.min(o.score,parseFloat(q.props.maxscore));
 			this.responses[this.currentQuestion] = o;
 			
-			// show feedback (if any)
-			if(feedback){
-				alert("Feedback: "+feedback);
-			}
 			return true;
 		} else {
 			if(nav == 'next'){
@@ -385,23 +415,19 @@ function Quiz(){
 			o.qid = q.refid;
 			o.score = 0;
 			o.qrtext = ans;
-			var feedback = null;
 			// mark question and get text
 			for(var r in q.r){
 				if(q.r[r].text == ans){
 					o.score = q.r[r].score;
+					// set feedback (if any)
 					if (q.r[r].props.feedback && q.r[r].props.feedback != ''){
-						feedback = q.r[r].props.feedback;
+						this.feedback = q.r[r].props.feedback;
 					}
 				}
 			}
-			o.score = Math.min(o.score,parseInt(q.props.maxscore));
+			o.score = Math.min(o.score,parseFloat(q.props.maxscore));
 			this.responses[this.currentQuestion] = o;
-			
-			// show feedback (if any)
-			if(feedback){
-				alert("Feedback: "+feedback);
-			}
+
 			return true;
 		} else {
 			if(nav == 'next'){
@@ -431,24 +457,25 @@ function Quiz(){
 		o.qid = q.refid;
 		o.score = 0;
 		o.qrtext = "";
-		var feedback = null;
 		var countsel = 0;
 		// mark question and get text
 		for(var r in q.r){
 			if($('#'+q.r[r].refid).attr('checked')){
-				o.score += parseInt(q.r[r].score);
+				o.score += parseFloat(q.r[r].score);
 				o.qrtext += q.r[r].text + "|";
 				countsel++;
+				if(q.r[r].props.feedback != ""){
+					this.feedback += q.r[r].text+": "+ q.r[r].props.feedback + "<br/>";
+				}
 			}
-			// TODO add feedback
 		}
 		//set score back to 0 if any incorrect options selected
 		for(var r in q.r){
-			if($('#'+q.r[r].refid).attr('checked') && parseInt(q.r[r].score) == 0){
+			if($('#'+q.r[r].refid).attr('checked') && parseFloat(q.r[r].score) == 0){
 				o.score = 0;
 			}
 		}
-		o.score = Math.min(o.score,parseInt(q.props.maxscore));
+		o.score = Math.min(o.score,parseFloat(q.props.maxscore));
 		this.responses[this.currentQuestion] = o;
 		
 		return true;
@@ -456,11 +483,13 @@ function Quiz(){
 	
 	this.showResults = function(){
 		if(!this.saveResponse('next')){
-			alert("You must answer this question before getting your results.");
+			alert("Please answer this question before getting your results.");
 			return;
 		} 
+		
 		inQuiz = false;
 		$('#content').empty();
+		
 		$('#content').append("<h2 name='lang' id='page_title_results'>Your results for:<br/> '"+ this.quiz.title +"':</h2>");
 		// calculate score
 		var total = 0;
@@ -479,14 +508,18 @@ function Quiz(){
 		$('#content').append(rank);
 		rank.hide();
 		
-		var retake = $('<div>').attr({'class': 'resultopt clickable centre'}).append('Take this quiz again');
+		var next = $('<div>').attr({'id':'next','class': 'next centre'});
+		$('#content').append(next);
+		next.hide();
+		
+		var retake = $('<div>').attr({'class': 'resultopt clickable centre'}).append("Retake '"+ this.quiz.title +"'");
 		$('#content').append(retake);
 		var refid = this.quiz.refid;
 		retake.click(function(){
 			loadQuiz(refid,false);
 		});
 		
-		var takeAnother = $('<div>').attr({'class': 'resultopt clickable centre'}).append('Take another quiz');
+		var takeAnother = $('<div>').attr({'class': 'resultopt clickable centre'}).append('Try another quiz');
 		$('#content').append(takeAnother);
 		takeAnother.click(function(){
 			document.location = "#home";
@@ -497,6 +530,7 @@ function Quiz(){
 		viewResults.click(function(){
 			document.location = "#results";
 		});
+		
 		
 		//save for submission to server
 		var content = Object();
@@ -523,6 +557,13 @@ function Quiz(){
 					   $('#rank').append("Your ranking: " + data.rank);
 					   $('#rank').show();
 				   }
+				   if($('#next') && data.next){
+					   if(data.next.length > 0){
+						   $('#next').empty();
+						   $('#next').append("We suggest you take '<a href='#"+ data.next[0].quizref+"'>"+ data.next[0].title+"</a>' next");
+						   $('#next').show('blind');
+					   }
+				   }
 			   }
 		   }, 
 		   error:function(data){
@@ -532,16 +573,26 @@ function Quiz(){
 	}
 	
 	this.setNav = function(){
+		$('#quiznavprevbtn').unbind('click');
+		$('#quiznavprevbtn').bind('click',function(event){
+			Q.loadPrevQuestion();
+		});
 		if(this.currentQuestion == 0){
 			$('#quiznavprevbtn').attr('disabled', 'disabled');
 		} else {
 			$('#quiznavprevbtn').removeAttr('disabled');
 		}
+		
+		$('#quiznavnextbtn').unbind('click');
 		if(this.currentQuestion+1 == this.quiz.q.length){
-			$('#quiznavnextbtn').attr({'onclick':'Q.showResults()','value':'Get results'});
+			$('#quiznavnextbtn').attr({'value':'Get results'});
 		} else {
-			$('#quiznavnextbtn').attr({'onclick':'Q.loadNextQuestion()','value':'Next >>'});
+			$('#quiznavnextbtn').attr({'value':'Next >>'});
+			
 		}
+		$('#quiznavnextbtn').bind('click',function(){
+			Q.loadNextQuestion();
+		});
 	}
 	
 }
