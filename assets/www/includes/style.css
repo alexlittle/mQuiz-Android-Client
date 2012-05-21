@@ -78,7 +78,7 @@ li {
 #menu {
 	width:100%;
 	text-align:center;
-	padding:5px;
+	padding:5px 0;
 	background:	#9aca3c;
 }
 
@@ -93,7 +93,7 @@ li {
 .formlabel, .formfield{
 	font-size:110%;
 	margin:auto;
-	width:80%;
+	width:90%;
 }
 
 .formfield input{
@@ -228,7 +228,7 @@ label.error{
 }
 
 #searchresults, #suggestresults, #localq {
-	width:80%;
+	width:90%;
 	margin:10px auto;
 }
 
@@ -298,10 +298,33 @@ label.error{
 }
 #fbtext {
 	text-align:center;
-	width:80%;
+	width:90%;
 	margin: 10px auto;
 }
 
 #qs {
 	min-height:200px;
+}
+#searchform {
+	font-size:110%;
+	width:90%;
+	margin:5px auto;
+}
+#searchterms {
+	width:200px;
+	font-size:130%;
+}
+#searchbtn {
+	width:60px;
+	font-size:130%;
+}
+
+#msg {
+	width:90%;
+	margin:0 auto;
+	text-align:center;
+	font-size:80%;
+}
+.warn {
+	color: red;
 }
