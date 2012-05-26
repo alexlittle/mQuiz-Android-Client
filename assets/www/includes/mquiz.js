@@ -6,12 +6,13 @@ function init(){
 			'allowregister': true,
 			'finallinks': [{'title':'Try another quiz','link':'#select'},
 			               {'title':'View all recent results','link':'#results'}],
-			'url':'http://mquiz.org/api/?format=json'          
+			'url':'http://mquiz.org/api/?format=json'
 			};
 	mQ.init(opts);
 	mQ.onLogin = function(){
 		mQ.dataUpdate();
 	}
+	
 	if($(location).attr('hash')){
 		mQ.showPage($(location).attr('hash'));
 	} else {
