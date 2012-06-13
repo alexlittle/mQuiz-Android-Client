@@ -5,7 +5,8 @@ function init(){
 			        {'title':'Results','link':'#results'}],
 			'allowregister': true,
 			'finallinks': [{'title':'Try another quiz','link':'#select'},
-			               {'title':'View all recent results','link':'#results'}]
+			               {'title':'View all recent results','link':'#results'}],
+			'url':'http://mquiz.org/api/?format=json'
 			};
 	mQ.init(opts);
 	mQ.onLogin = function(){
