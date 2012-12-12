@@ -6,8 +6,8 @@ function init(){
 			'allowregister': true,
 			'finallinks': [{'title':'Try another quiz','link':'#select'},
 			               {'title':'View all recent results','link':'#results'}],
-			'url':'http://mquiz.org/api/v1/'
-			};
+			'url':'http://mquiz.org/api/v1/',
+			'home':'index.html#home'};
 	mQ.init(opts);
 	mQ.onLogin = function(){
 		mQ.dataUpdate();

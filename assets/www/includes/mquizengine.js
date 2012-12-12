@@ -45,7 +45,12 @@ function mQuiz(){
 				return;
 			}
 		}
-		document.location = '../';
+		if (this.opts.home){
+			document.location = this.opts.home;
+		} else {
+			document.location = '../';
+		}
+		
 	};
 	
 	this.loadQuiz = function(id){
