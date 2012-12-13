@@ -1022,6 +1022,12 @@ function Quiz(){
 	}
 	
 	this.saveInfo = function(nav){
+		var o = Object();
+		var q = this.quiz.questions[this.currentQuestion].question;
+		o.question_id = q.id;
+		o.score = 0;
+		o.text = "";
+		this.responses[this.currentQuestion] = o;
 		return true;
 	}
 	
