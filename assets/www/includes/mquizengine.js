@@ -330,6 +330,7 @@ function mQuiz(){
 					mQ.store.set('username', reqData.username);
 					mQ.store.set('displayname',data.first_name + " " + data.last_name);
 					mQ.store.set('api_key',data.api_key);
+					mQ.store.set('points',data.points);
 					mQ.showUsername();
 					mQ.onRegister();
 				},
@@ -515,6 +516,7 @@ function mQuiz(){
 						success:function(data){
 								cache = mQ.store.get('results');
 								mQ.store.clearKey('results');
+								
 								results[r].sent = true;
 								for (var c in cache){
 									if(cache[c].quizdate == results[r].quizdate){
@@ -524,6 +526,9 @@ function mQuiz(){
 									}
 								} 
 								mQ.store.set('lastupdate',Date());
+								mQ.store.set('points',data.points);
+								mQ.showUsername();
+								
 						}, 
 						error:function(data){ 
 							// do nothing
@@ -580,6 +585,7 @@ function mQuiz(){
 					mQ.store.set('username',data.username);
 					mQ.store.set('displayname',postData.firstname);
 					mQ.store.set('api_key',data.api_key);
+					mQ.store.set('points',data.points);
 					mQ.showUsername();
 					mQ.onRegister();		   
 				}, 
@@ -596,7 +602,10 @@ function mQuiz(){
 	this.showUsername = function(){
 		$('#logininfo').empty();
 		if(mQ.store.get('displayname') != null && mQ.store.get('displayname') != ""){
-			$('#logininfo').text(mQ.store.get('displayname') + ": ");
+			$('#logininfo').text(mQ.store.get('displayname'));
+			var points = $('<span>').attr({'class':'points'});
+			points.text(mQ.store.get('points'));
+			$('#logininfo').append(points);
 			$('#logininfo').append("<a onclick='mQ.logout()' name='lang' id='logout' href='#login'>Logout</a>");
 		} 
 	};
@@ -633,6 +642,7 @@ function Store(){
 			localStorage.setItem('quizzes', null);
 			localStorage.setItem('results', null);
 			localStorage.setItem('userlang', 'en');
+			localStorage.setItem('points', 0);
 		}
 	}
 	
@@ -1293,6 +1303,8 @@ function Quiz(){
 							mQ.store.addArrayItem('results', cache[c]);
 						}
 					} 
+					mQ.store.set('points',data.points);
+					mQ.showUsername();
 				}
 			}, 
 			error:function(data){ 

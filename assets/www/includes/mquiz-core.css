@@ -302,3 +302,19 @@
 #mq .warn {
 	color: red;
 }
+
+#mq div.points, span.points {
+	border: 0px solid #aaa;
+	margin: 3px 5px;
+	padding: 3px;
+	border-radius: 0.3em;
+	-moz-border-radius: 0.3em;
+	-webkit-border-radius: 0.3em;
+	font-family: courier;
+	font-weight:normal;
+	color: #fff;
+	background:#495525;
+	white-space: nowrap;
+	text-align:right;
+	display:inline;
+}
